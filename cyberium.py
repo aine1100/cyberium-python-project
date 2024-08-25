@@ -5,88 +5,69 @@ import shutil
 import requests
 import time
 from collections import defaultdict
-from operator import itemgetter
 
-# Function to get OS details
-def get_os_details():
-    os_name = platform.system()
-    os_version = platform.version()
-    os_release = platform.release()
-    return f"{os_name} {os_version} ({os_release})"
+# this will get OS info
+def os_info():
+    return f"{platform.system()} {platform.release()}"
 
-# Function to get network details
-def get_network_details():
-    hostname = socket.gethostname()
-    private_ip = socket.gethostbyname(hostname)
-    
+# Network info
+def network_info():
     try:
-        public_ip = requests.get('https://api.ipify.org').text
-    except requests.RequestException as e:
-        public_ip = f"Failed to retrieve public IP address: {e}"
+        public_ip = requests.get('https://api.ipify.org').text #this api helps in fetching the public ip of the device
+    except:
+        public_ip = "Unavailable"
+    return socket.gethostname(), socket.gethostbyname(socket.gethostname()), public_ip
 
-    return hostname, private_ip, public_ip
-
-# Function to get disk usage statistics
-def get_disk_usage(path='/'):
+# this helps in finding Disk space
+def disk_space(path='/'):
     total, used, free = shutil.disk_usage(path)
     return total, used, free
 
-# Function to find the largest directories
-def get_largest_directories(root_dir='C:/', num_dirs=5):
-    dir_sizes = defaultdict(int)
-
-    for dirpath, dirnames, filenames in os.walk(root_dir):
+# the function helps Largest folders
+def large_dirs(root='C:/', count=5):
+    sizes = defaultdict(int)
+    for dirpath, _, filenames in os.walk(root):
         for f in filenames:
             try:
                 fp = os.path.join(dirpath, f)
-                dir_sizes[dirpath] += os.path.getsize(fp)
-            except FileNotFoundError:
+                if os.path.exists(fp):  # Ensure the file exists
+                    sizes[dirpath] += os.path.getsize(fp)
+            except Exception as e:
+                # Catch all exceptions to avoid breaking the loop
+                print(f"Error processing file {fp}: {e}")
                 pass
+    return sorted(sizes.items(), key=lambda x: x[1], reverse=True)[:count]
 
-    largest_dirs = sorted(dir_sizes.items(), key=itemgetter(1), reverse=True)[:num_dirs]
-    return largest_dirs
-
-# Function to monitor CPU usage
-def monitor_cpu_usage():
+# this function helps in seeing the CPU usage
+def cpu_usage():
     if platform.system() == "Windows":
-        cpu_usage = os.popen("wmic cpu get loadpercentage").read().strip().split("\n")[1]
+        return os.popen("wmic cpu get loadpercentage").read().split("\n")[1]
     else:
-        cpu_usage = os.popen("top -bn1 | grep 'Cpu(s)'").read().split('%')[0].split()[-1]
-    return cpu_usage
+        return os.popen("top -bn1 | grep 'Cpu(s)'").read().split('%')[0].split()[-1]
 
-# Main function to gather and display system information
+#this is  Main function
 def main():
     while True:
-        # Display OS details
-        os_details = get_os_details()
-        print(f"Operating System: {os_details}\n")
+        print(f"OS: {os_info()}\n")
 
-        # Display network details
-        hostname, private_ip, public_ip = get_network_details()
+        hostname, private_ip, public_ip = network_info()
         print(f"Hostname: {hostname}")
-        print(f"Private IP Address: {private_ip}")
-        print(f"Public IP Address: {public_ip}\n")
+        print(f"Private IP: {private_ip}")
+        print(f"Public IP: {public_ip}\n")
 
-        # Display disk usage statistics
-        total, used, free = get_disk_usage()
-        print(f"Total Disk Space: {total / (1024**3):.2f} GB")
-        print(f"Used Disk Space: {used / (1024**3):.2f} GB")
-        print(f"Free Disk Space: {free / (1024**3):.2f} GB\n")
+        total, used, free = disk_space()
+        print(f"Total Disk: {total / (1024**3):.2f} GB")
+        print(f"Used Disk: {used / (1024**3):.2f} GB")
+        print(f"Free Disk: {free / (1024**3):.2f} GB\n")
 
-        # Display largest directories
-        largest_dirs = get_largest_directories()
-        print("Top 5 Largest Directories:")
-        for dir_path, size in largest_dirs:
+        print("Largest Folders:")
+        for dir_path, size in large_dirs():
             print(f"{dir_path}: {size / (1024**3):.2f} GB")
         print()
 
-        # Display CPU usage
-        cpu_usage = monitor_cpu_usage()
-        print(f"CPU Usage: {cpu_usage}%\n")
+        print(f"CPU Usage: {cpu_usage()}%\n")
 
-        # Wait for 30 seconds before updating the information
         time.sleep(30)
 
-# Run the main function
 if __name__ == "__main__":
     main()

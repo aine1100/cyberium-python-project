@@ -3,34 +3,31 @@ import subprocess
 import platform
 import time
 
-# Define the path to the log file for Linux systems
-log_file_path = '/var/log/auth.log'
-
-# Function to parse the log file and extract relevant information for Linux
-def parse_log_linux(log_file_path):
-    with open(log_file_path, 'r') as file:
+user_log_file = '/var/log/auth.log'
+#this function helps in getting info in the log file
+def log_reader(user_log_file):
+    with open(user_log_file, 'r') as file:
         logs = file.readlines()
 
     for line in logs:
-        timestamp, user, command, action = extract_info_linux(line)
+        timestamp, user, command, action = linux_information(line)
         if timestamp:
-            print(f"Timestamp: {timestamp}")
+            print(f"Timestamp: {timestamp}")#this gets the info about the timestamp
             if user:
-                print(f"User: {user}")
+                print(f"User: {user}")#this gets info about the user
             if command:
-                print(f"Command: {command}")
+                print(f"Command: {command}")#this gets the command user
             if action:
                 print(f"Action: {action}")
             print("-" * 20)
 
-# Function to extract information from a log line on Linux
-def extract_info_linux(line):
+def linux_information(line):
     timestamp = None
     user = None
     command = None
     action = None
 
-    # Example regex patterns - adjust based on actual log format
+    # this is just seeing if the timestamp just meets
     timestamp_match = re.match(r'(\w{3} \d{2} \d{2}:\d{2}:\d{2})', line)
     if timestamp_match:
         timestamp = timestamp_match.group(1)
@@ -43,83 +40,76 @@ def extract_info_linux(line):
     if command_match:
         command = command_match.group(1)
 
-    # Custom actions and alerts
     if 'sudo' in line:
-        action = 'sudo command executed'
+        action = 'sudo command has been used perfectly'
         if 'failed' in line:
-            action = 'ALERT! Failed sudo command'
+            action = 'ALERT! Failed to run sudo command'
     elif 'su' in line:
-        action = 'su command used'
+        action = 'su command has been used'
     elif 'password changed' in line:
-        action = 'Password changed'
+        action = 'Password is changed'
 
     return timestamp, user, command, action
 
-# Function to monitor user authentication changes for Linux
-def monitor_authentication_changes_linux(log_file_path):
-    with open(log_file_path, 'r') as file:
+def authentication_linux(user_log_file):
+    with open(user_log_file, 'r') as file:
         logs = file.readlines()
 
     for line in logs:
+        timestamp = get_timestamp(line)
         if 'useradd' in line:
-            timestamp = extract_timestamp(line)
             print(f"New user added at {timestamp}")
         elif 'userdel' in line:
-            timestamp = extract_timestamp(line)
             print(f"User deleted at {timestamp}")
         elif 'passwd' in line:
-            timestamp = extract_timestamp(line)
             print(f"Password changed at {timestamp}")
         elif 'su' in line:
-            print(f"su command used: {line.strip()}")
+            print(f"su command used at {timestamp}: {line.strip()}")
         elif 'sudo' in line:
             if 'failed' in line:
-                print(f"ALERT! Failed sudo command: {line.strip()}")
+                print(f"ALERT! Failed sudo command at {timestamp}: {line.strip()}")
             else:
-                print(f"sudo command executed: {line.strip()}")
+                print(f"sudo command executed at {timestamp}: {line.strip()}")
 
-# Function to extract timestamp from log line on Linux
-def extract_timestamp(line):
+def get_timestamp(line):
     timestamp_match = re.match(r'(\w{3} \d{2} \d{2}:\d{2}:\d{2})', line)
     if timestamp_match:
         return timestamp_match.group(1)
     return 'Timestamp not found'
-
-# Function to parse relevant information on Windows using command outputs
-def parse_log_windows():
-    # Example command: net user
-    print("Executing: net user")
+#this is extracting the user info from windows
+def log_windows():
+    print("Working: net user")
     result = subprocess.run(["net", "user"], capture_output=True, text=True)
     print(result.stdout)
 
-    # Example command: checking users in Administrators group
-    print("Executing: net localgroup Administrators")
+    print("Working: net localgroup Administrators")
     result = subprocess.run(["net", "localgroup", "Administrators"], capture_output=True, text=True)
     print(result.stdout)
 
-    # Example command: querying event logs for user actions (password changes, etc.)
-    print("Executing: wevtutil qe Security /rd:true /f:text /c:5 /q:\"*[System[EventID=4723]]\"")
+    print("Working: wevtutil qe Security /rd:true /f:text /c:5 /q:\"*[System[EventID=4723]]\"")
     result = subprocess.run(
         ["wevtutil", "qe", "Security", "/rd:true", "/f:text", "/c:5", "/q:*[System[EventID=4723]]"],
         capture_output=True, text=True
     )
     print(result.stdout)
 
-# Determine OS and run appropriate functions in a loop
+    print("\nSimulated Timestamps for Windows Events:")
+    print("Timestamp: Simulated Timestamp")
+#this main function just guess wether its for windows and then it performs its task and if its for linux it also gives information about linux
 if __name__ == "__main__":
     current_os = platform.system()
 
     while True:
         if current_os == "Linux":
-            print("Parsing Log File on Linux:")
-            parse_log_linux(log_file_path)
+            print("Opening Log File on Linux:")
+            log_reader(user_log_file)
             print("\nMonitoring Authentication Changes on Linux:")
-            monitor_authentication_changes_linux(log_file_path)
+            authentication_linux(user_log_file)
         elif current_os == "Windows":
             print("Parsing Information on Windows:")
-            parse_log_windows()
+            log_windows()
         else:
             print(f"Unsupported OS: {current_os}")
 
         print("Waiting for 5 seconds before next update...\n")
-        time.sleep(5)  # Wait for 5 seconds before the next update
+        time.sleep(5)
